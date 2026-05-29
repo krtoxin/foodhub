@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -160,9 +162,19 @@ class ProfileScreen extends ConsumerWidget {
         imageQuality: 85,
         maxWidth: 512,
       );
-      if (image != null) {
-        await ref.read(authProvider.notifier).updatePhotoUrl(image.path);
+      if (image == null) return;
+
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      String photoUrl = image.path;
+
+      if (uid != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref('users/$uid/avatar.jpg');
+        await storageRef.putFile(File(image.path));
+        photoUrl = await storageRef.getDownloadURL();
       }
+
+      await ref.read(authProvider.notifier).updatePhotoUrl(photoUrl);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
