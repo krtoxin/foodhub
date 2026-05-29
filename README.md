@@ -10,17 +10,21 @@
 |--------|----------------|----------------|
 | ![home](screenshots/home.png) | ![list](screenshots/list.png) | ![detail](screenshots/detail.png) |
 
-| Обрані | Мої рецепти | Додати рецепт |
-|--------|------------|--------------|
-| ![favorites](screenshots/favorites.png) | ![my_recipes](screenshots/my_recipes.png) | ![add](screenshots/add.png) |
+| Деталі рецепту 2 | Обрані | Мої рецепти |
+|-----------------|--------|------------|
+| ![detail2](screenshots/detail2.png) | ![favorites](screenshots/favorites.png) | ![my_recipes](screenshots/my_recipes.png) |
 
-| Редагувати рецепт | Профіль | Темна тема |
-|------------------|---------|-----------|
-| ![edit](screenshots/edit.png) | ![profile](screenshots/profile.png) | ![dark](screenshots/dark.png) |
+| Додати рецепт | Редагувати рецепт | Профіль |
+|--------------|------------------|---------|
+| ![add](screenshots/add.png) | ![edit](screenshots/edit.png) | ![profile](screenshots/profile.png) |
 
-| Реєстрація | Вхід | Пошук |
-|-----------|------|-------|
-| ![register](screenshots/register.png) | ![login](screenshots/login.png) | ![search](screenshots/search.png) |
+| Темна тема | Реєстрація | Вхід |
+|-----------|-----------|------|
+| ![dark](screenshots/dark.png) | ![register](screenshots/register.png) | ![login](screenshots/login.png) |
+
+| Пошук |
+|-------|
+| ![search](screenshots/search.png) |
 
 ---
 
