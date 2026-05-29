@@ -1,8 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/domain/auth_state.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -22,9 +22,17 @@ class _RouterNotifier extends ChangeNotifier {
 
   _RouterNotifier(this._ref) {
     _isAuthenticated = _ref.read(authProvider).isAuthenticated;
-    _ref.listen<AuthState>(authProvider, (prev, next) {
-      if (prev?.isAuthenticated != next.isAuthenticated) {
-        _isAuthenticated = next.isAuthenticated;
+
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      final wasAuth = _isAuthenticated;
+      _isAuthenticated = user != null;
+      if (wasAuth != _isAuthenticated) notifyListeners();
+    });
+
+    _ref.listen(authProvider, (_, next) {
+      final newVal = next.isAuthenticated;
+      if (_isAuthenticated != newVal) {
+        _isAuthenticated = newVal;
         notifyListeners();
       }
     });
