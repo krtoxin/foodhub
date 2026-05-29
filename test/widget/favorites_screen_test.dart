@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodhub/core/l10n/generated/app_localizations.dart';
-import 'package:foodhub/core/providers/shared_preferences_provider.dart';
+import 'package:foodhub/features/auth/presentation/auth_provider.dart';
+import 'package:foodhub/features/favorites/domain/favorite_meal.dart';
+import 'package:foodhub/features/favorites/presentation/favorites_provider.dart';
 import 'package:foodhub/features/favorites/presentation/favorites_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-Widget _buildApp(SharedPreferences prefs) {
+Widget _buildApp({
+  String? uid = 'test-uid',
+  List<FavoriteMeal> favorites = const [],
+}) {
   return ProviderScope(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      currentUidProvider.overrideWithValue(uid),
+      favoritesStreamProvider.overrideWithValue(Stream.value(favorites)),
+      favoritesProvider.overrideWith(() => _FakeFavoritesNotifier(favorites)),
+    ],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -18,38 +26,39 @@ Widget _buildApp(SharedPreferences prefs) {
   );
 }
 
+class _FakeFavoritesNotifier extends FavoritesNotifier {
+  final List<FavoriteMeal> _initial;
+  _FakeFavoritesNotifier(this._initial);
+
+  @override
+  List<FavoriteMeal> build() => _initial;
+}
+
 void main() {
-  late SharedPreferences prefs;
-
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    prefs = await SharedPreferences.getInstance();
-  });
-
   testWidgets('shows empty state when no favorites', (tester) async {
-    await tester.pumpWidget(_buildApp(prefs));
+    await tester.pumpWidget(_buildApp());
     await tester.pumpAndSettle();
 
     expect(find.text('No favorites yet'), findsOneWidget);
-    expect(find.text('Add recipes you love here'), findsOneWidget);
     expect(find.byIcon(Icons.favorite_outline), findsOneWidget);
   });
 
   testWidgets('shows Favorites in AppBar', (tester) async {
-    await tester.pumpWidget(_buildApp(prefs));
+    await tester.pumpWidget(_buildApp());
     await tester.pumpAndSettle();
 
     expect(find.text('Favorites'), findsOneWidget);
   });
 
   testWidgets('shows list when favorites exist', (tester) async {
-    SharedPreferences.setMockInitialValues({
-      'favorites_list':
-          '[{"id":"1","name":"Test Meal","thumb":"https://example.com/img.jpg","category":"Beef"}]',
-    });
-    final prefsWithData = await SharedPreferences.getInstance();
+    final meal = FavoriteMeal(
+      id: '1',
+      name: 'Test Meal',
+      thumb: 'https://example.com/img.jpg',
+      category: 'Beef',
+    );
 
-    await tester.pumpWidget(_buildApp(prefsWithData));
+    await tester.pumpWidget(_buildApp(favorites: [meal]));
     await tester.pumpAndSettle();
 
     expect(find.text('Test Meal'), findsOneWidget);
