@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../data/favorites_firestore_service.dart';
 import '../domain/favorite_meal.dart';
 import 'favorites_provider.dart';
 
@@ -13,18 +15,43 @@ class FavoritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final favorites = ref.watch(favoritesProvider);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.favorites)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.favorites)),
-      body: favorites.isEmpty
-          ? _EmptyState(l10n: l10n)
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: favorites.length,
-              itemBuilder: (ctx, i) =>
-                  _FavoriteCard(meal: favorites[i], l10n: l10n),
-            ),
+      body: StreamBuilder<List<FavoriteMeal>>(
+        stream: favoritesFirestoreService.favoritesStream(uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
+
+          final favorites = snapshot.data ?? [];
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(favoritesProvider.notifier).syncFromFirestore(favorites);
+          });
+
+          if (favorites.isEmpty) return _EmptyState(l10n: l10n);
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: favorites.length,
+            itemBuilder: (ctx, i) =>
+                _FavoriteCard(meal: favorites[i], l10n: l10n),
+          );
+        },
+      ),
     );
   }
 }
@@ -78,8 +105,7 @@ class _FavoriteCard extends ConsumerWidget {
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
-      onDismissed: (_) =>
-          ref.read(favoritesProvider.notifier).toggle(meal),
+      onDismissed: (_) => ref.read(favoritesProvider.notifier).toggle(meal),
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         clipBehavior: Clip.antiAlias,
@@ -99,9 +125,10 @@ class _FavoriteCard extends ConsumerWidget {
                   fit: BoxFit.cover,
                   placeholder: (ctx, url) =>
                       Container(color: Colors.grey.shade200),
-                  errorWidget: (ctx, url, err) =>
-                      Container(color: Colors.grey.shade200,
-                          child: const Icon(Icons.restaurant, size: 40)),
+                  errorWidget: (ctx, url, err) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.restaurant, size: 40),
+                  ),
                 ),
               ),
               Expanded(
@@ -119,7 +146,8 @@ class _FavoriteCard extends ConsumerWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (meal.category != null && meal.category!.isNotEmpty) ...[
+                      if (meal.category != null &&
+                          meal.category!.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Chip(
                           label: Text(meal.category!),
