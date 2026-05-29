@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../../favorites/domain/favorite_meal.dart';
+import '../../favorites/presentation/favorites_provider.dart';
 import '../domain/meal_detail.dart';
 import 'recipes_provider.dart';
 
@@ -22,6 +24,9 @@ class RecipeDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final mealAsync = ref.watch(mealDetailProvider(mealId));
+    final isFav = ref.watch(
+      favoritesProvider.select((list) => list.any((m) => m.id == mealId)),
+    );
 
     return Scaffold(
       body: CustomScrollView(
@@ -29,15 +34,33 @@ class RecipeDetailScreen extends ConsumerWidget {
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                mealName,
-                style: const TextStyle(
-                  shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+            actions: [
+              IconButton(
+                tooltip: isFav ? l10n.removeFromFavorites : l10n.addToFavorites,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Icon(
+                    isFav ? Icons.favorite : Icons.favorite_border,
+                    key: ValueKey(isFav),
+                    color: isFav ? Colors.red : null,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                onPressed: () {
+                  final meal = mealAsync.valueOrNull;
+                  if (meal == null) return;
+                  ref.read(favoritesProvider.notifier).toggle(
+                        FavoriteMeal(
+                          id: meal.id,
+                          name: meal.name,
+                          thumb: meal.thumb,
+                          category:
+                              meal.category.isNotEmpty ? meal.category : null,
+                        ),
+                      );
+                },
               ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'meal_$mealId',
                 child: mealThumb.isNotEmpty
@@ -89,6 +112,14 @@ class _DetailBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            meal.name,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 4,
@@ -96,14 +127,12 @@ class _DetailBody extends StatelessWidget {
               if (meal.category.isNotEmpty)
                 Chip(
                   label: Text(meal.category),
-                  avatar:
-                      const Icon(Icons.category_outlined, size: 16),
+                  avatar: const Icon(Icons.category_outlined, size: 16),
                 ),
               if (meal.area.isNotEmpty)
                 Chip(
                   label: Text(meal.area),
-                  avatar:
-                      const Icon(Icons.public_outlined, size: 16),
+                  avatar: const Icon(Icons.public_outlined, size: 16),
                 ),
             ],
           ),
@@ -183,8 +212,7 @@ class _IngredientRow extends StatelessWidget {
           ),
           Text(
             measure,
-            style: TextStyle(
-                color: color, fontWeight: FontWeight.w600),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
           ),
         ],
       ),
