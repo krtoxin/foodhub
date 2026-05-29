@@ -1,10 +1,10 @@
-import 'dart:io';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../data/my_recipes_firestore_service.dart';
 import '../domain/my_recipe.dart';
 import 'my_recipes_provider.dart';
 
@@ -14,20 +14,43 @@ class MyRecipesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final recipes = ref.watch(myRecipesProvider);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.myRecipes)),
-      body: recipes.isEmpty
-          ? _EmptyState(l10n: l10n)
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: recipes.length,
-              itemBuilder: (ctx, i) => _RecipeCard(
-                recipe: recipes[i],
-                onDelete: () =>
-                    ref.read(myRecipesProvider.notifier).delete(recipes[i].id),
-              ),
+      body: uid == null
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<MyRecipe>>(
+              stream: myRecipesFirestoreService.recipesStream(uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text(snapshot.error.toString()));
+                }
+
+                final recipes = snapshot.data ?? [];
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ref
+                      .read(myRecipesProvider.notifier)
+                      .syncFromFirestore(recipes);
+                });
+
+                if (recipes.isEmpty) return _EmptyState(l10n: l10n);
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: recipes.length,
+                  itemBuilder: (ctx, i) => _RecipeCard(
+                    recipe: recipes[i],
+                    onDelete: () => ref
+                        .read(myRecipesProvider.notifier)
+                        .delete(recipes[i].id),
+                  ),
+                );
+              },
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/add-recipe'),
@@ -95,7 +118,8 @@ class _RecipeCard extends StatelessWidget {
             _RecipeImage(imagePath: recipe.imagePath),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -134,10 +158,10 @@ class _RecipeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imagePath != null) {
-      final file = File(imagePath!);
-      return Image.file(
-        file,
+    if (imagePath == null) return _placeholder();
+    if (imagePath!.startsWith('http')) {
+      return Image.network(
+        imagePath!,
         width: 100,
         height: 100,
         fit: BoxFit.cover,

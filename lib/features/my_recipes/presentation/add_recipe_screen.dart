@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -99,18 +101,33 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     );
   }
 
+  Future<String?> _uploadImage(String localPath) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    final id = DateTime.now().millisecondsSinceEpoch;
+    final ref = FirebaseStorage.instance
+        .ref('users/$uid/recipes/$id.jpg');
+    await ref.putFile(File(localPath));
+    return ref.getDownloadURL();
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
     try {
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+      String? imageUrl;
+      if (_pickedImage != null) {
+        imageUrl = await _uploadImage(_pickedImage!.path);
+      }
       final recipe = MyRecipe(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: id,
         name: _nameController.text.trim(),
         category: _selectedCategory ?? '',
         ingredients: _ingredientsController.text.trim(),
         steps: _stepsController.text.trim(),
-        imagePath: _pickedImage?.path,
+        imagePath: imageUrl,
         createdAt: DateTime.now().millisecondsSinceEpoch,
       );
       await ref.read(myRecipesProvider.notifier).add(recipe);

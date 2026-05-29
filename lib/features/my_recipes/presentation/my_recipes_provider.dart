@@ -1,51 +1,29 @@
-import 'dart:convert';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/constants/app_constants.dart';
-import '../../../core/providers/shared_preferences_provider.dart';
+import '../data/my_recipes_firestore_service.dart';
 import '../domain/my_recipe.dart';
 
 class MyRecipesNotifier extends Notifier<List<MyRecipe>> {
   @override
-  List<MyRecipe> build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    return _load(prefs);
-  }
+  List<MyRecipe> build() => [];
 
-  List<MyRecipe> _load(SharedPreferences prefs) {
-    final raw = prefs.getString(AppConstants.prefMyRecipes);
-    if (raw == null) return [];
-    try {
-      final list = jsonDecode(raw) as List;
-      return list
-          .map((e) => MyRecipe.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> add(MyRecipe recipe) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final updated = [recipe, ...state];
-    await _persist(prefs, updated);
-    state = updated;
+    final uid = _uid;
+    if (uid != null) await myRecipesFirestoreService.add(uid, recipe);
+    state = [recipe, ...state];
   }
 
   Future<void> delete(String id) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final updated = state.where((r) => r.id != id).toList();
-    await _persist(prefs, updated);
-    state = updated;
+    final uid = _uid;
+    if (uid != null) await myRecipesFirestoreService.delete(uid, id);
+    state = state.where((r) => r.id != id).toList();
   }
 
-  Future<void> _persist(SharedPreferences prefs, List<MyRecipe> list) async {
-    await prefs.setString(
-      AppConstants.prefMyRecipes,
-      jsonEncode(list.map((r) => r.toJson()).toList()),
-    );
+  void syncFromFirestore(List<MyRecipe> recipes) {
+    state = recipes;
   }
 }
 
