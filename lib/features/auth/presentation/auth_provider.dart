@@ -1,34 +1,34 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers/shared_preferences_provider.dart';
 import '../domain/auth_state.dart';
 
 class AuthNotifier extends Notifier<AuthState> {
-  static const _keyLoggedIn = 'is_logged_in';
-  static const _keyEmail = 'user_email';
-  static const _keyName = 'user_name';
-  static const _keyPhotoUrl = 'user_photo_url';
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
   @override
   AuthState build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
+    final user = _auth.currentUser;
+    return _fromUser(user);
+  }
+
+  AuthState _fromUser(User? user) {
+    if (user == null) return const AuthState();
     return AuthState(
-      isAuthenticated: prefs.getBool(_keyLoggedIn) ?? false,
-      email: prefs.getString(_keyEmail),
-      displayName: prefs.getString(_keyName),
-      photoUrl: prefs.getString(_keyPhotoUrl),
+      isAuthenticated: true,
+      email: user.email,
+      displayName: user.displayName,
+      photoUrl: user.photoURL,
     );
   }
 
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
-      final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool(_keyLoggedIn, true);
-      await prefs.setString(_keyEmail, email);
-      state = AuthState(isAuthenticated: true, email: email,
-          displayName: prefs.getString(_keyName));
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      state = _fromUser(_auth.currentUser);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _authError(e));
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -37,33 +37,55 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signUp(String email, String password, String name) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
-      final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool(_keyLoggedIn, true);
-      await prefs.setString(_keyEmail, email);
-      await prefs.setString(_keyName, name);
-      state = AuthState(isAuthenticated: true, email: email, displayName: name);
+      final cred = await _auth.createUserWithEmailAndPassword(
+          email: email, password: password);
+      await cred.user?.updateDisplayName(name);
+      await cred.user?.reload();
+      state = _fromUser(_auth.currentUser);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _authError(e));
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
   Future<void> signOut() async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.remove(_keyLoggedIn);
+    await _auth.signOut();
     state = const AuthState();
   }
 
   Future<void> resetPassword(String email) async {
     state = state.copyWith(isLoading: true, clearError: true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    state = state.copyWith(isLoading: false);
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      state = state.copyWith(isLoading: false);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: _authError(e));
+    }
   }
 
   Future<void> updatePhotoUrl(String url) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setString(_keyPhotoUrl, url);
+    await _auth.currentUser?.updatePhotoURL(url);
     state = state.copyWith(photoUrl: url);
+  }
+
+  String _authError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No account found for this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'email-already-in-use':
+        return 'An account already exists for this email.';
+      case 'invalid-email':
+        return 'Invalid email address.';
+      case 'weak-password':
+        return 'Password is too weak.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      default:
+        return e.message ?? 'Authentication error.';
+    }
   }
 }
 
