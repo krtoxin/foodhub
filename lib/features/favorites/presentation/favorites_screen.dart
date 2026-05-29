@@ -1,11 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
-import '../data/favorites_firestore_service.dart';
+import '../../../features/auth/presentation/auth_provider.dart';
 import '../domain/favorite_meal.dart';
 import 'favorites_provider.dart';
 
@@ -15,7 +14,7 @@ class FavoritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ref.watch(currentUidProvider);
 
     if (uid == null) {
       return Scaffold(
@@ -27,7 +26,7 @@ class FavoritesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.favorites)),
       body: StreamBuilder<List<FavoriteMeal>>(
-        stream: favoritesFirestoreService.favoritesStream(uid),
+        stream: ref.watch(favoritesStreamProvider),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

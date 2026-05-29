@@ -1,12 +1,22 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../features/auth/presentation/auth_provider.dart';
 import '../data/favorites_firestore_service.dart';
 import '../domain/favorite_meal.dart';
 
 class FavoritesNotifier extends Notifier<List<FavoriteMeal>> {
   @override
-  List<FavoriteMeal> build() => [];
+  List<FavoriteMeal> build() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final sub = favoritesFirestoreService
+          .favoritesStream(uid)
+          .listen((meals) => state = meals);
+      ref.onDispose(sub.cancel);
+    }
+    return [];
+  }
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -35,4 +45,10 @@ class FavoritesNotifier extends Notifier<List<FavoriteMeal>> {
 final favoritesProvider =
     NotifierProvider<FavoritesNotifier, List<FavoriteMeal>>(
         FavoritesNotifier.new);
+
+final favoritesStreamProvider = Provider<Stream<List<FavoriteMeal>>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return const Stream.empty();
+  return favoritesFirestoreService.favoritesStream(uid);
+});
 
