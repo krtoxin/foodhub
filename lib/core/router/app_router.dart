@@ -9,6 +9,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/favorites/presentation/favorites_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/my_recipes/presentation/add_recipe_screen.dart';
 import '../../features/my_recipes/presentation/my_recipes_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/recipes/presentation/recipe_detail_screen.dart';
@@ -100,6 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             mealThumb: extra?['thumb'] as String? ?? '',
           );
         },
+      ),
+      GoRoute(
+        path: '/add-recipe',
+        builder: (context, state) => const AddRecipeScreen(),
       ),
     ],
   );

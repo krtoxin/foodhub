@@ -11,6 +11,8 @@ class AppConstants {
   static const String prefLastSearch = 'last_search';
   static const String prefRandomMealId = 'random_meal_id';
   static const String prefRandomMealDate = 'random_meal_date';
+  static const String prefFavorites = 'favorites_list';
+  static const String prefMyRecipes = 'my_recipes_list';
 
   static const String firestoreFavorites = 'favorites';
   static const String firestoreMyRecipes = 'my_recipes';

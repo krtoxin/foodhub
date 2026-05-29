@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../auth/presentation/auth_provider.dart';
@@ -24,16 +27,31 @@ class ProfileScreen extends ConsumerWidget {
           Center(
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 48,
-                  backgroundColor: colorScheme.primaryContainer,
-                  backgroundImage: authState.photoUrl != null
-                      ? NetworkImage(authState.photoUrl!)
-                      : null,
-                  child: authState.photoUrl == null
-                      ? Icon(Icons.person, size: 48,
-                          color: colorScheme.onPrimaryContainer)
-                      : null,
+                GestureDetector(
+                  onTap: () =>
+                      _showImageSourceSheet(context, ref, l10n),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      CircleAvatar(
+                        radius: 52,
+                        backgroundColor: colorScheme.primaryContainer,
+                        backgroundImage:
+                            _resolveImage(authState.photoUrl),
+                        child: authState.photoUrl == null
+                            ? Icon(Icons.person,
+                                size: 52,
+                                color: colorScheme.onPrimaryContainer)
+                            : null,
+                      ),
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: colorScheme.primary,
+                        child: Icon(Icons.camera_alt,
+                            size: 16, color: colorScheme.onPrimary),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -45,7 +63,8 @@ class ProfileScreen extends ConsumerWidget {
                 if (authState.email != null) ...[
                   const SizedBox(height: 4),
                   Text(authState.email!,
-                      style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                      style:
+                          TextStyle(color: colorScheme.onSurfaceVariant)),
                 ],
               ],
             ),
@@ -59,7 +78,8 @@ class ProfileScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.language),
                   title: Text(l10n.language),
-                  trailing: _LanguageDropdown(settings: settings, ref: ref, l10n: l10n),
+                  trailing: _LanguageDropdown(
+                      settings: settings, ref: ref, l10n: l10n),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
@@ -89,6 +109,67 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  ImageProvider? _resolveImage(String? photoUrl) {
+    if (photoUrl == null) return null;
+    if (photoUrl.startsWith('http')) return NetworkImage(photoUrl);
+    try {
+      return FileImage(File(photoUrl));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _showImageSourceSheet(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: Text(l10n.takePhoto),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(context, ref, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(l10n.chooseFromGallery),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(context, ref, ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(
+      BuildContext context, WidgetRef ref, ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 512,
+      );
+      if (image != null) {
+        await ref.read(authProvider.notifier).updatePhotoUrl(image.path);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 }
 
