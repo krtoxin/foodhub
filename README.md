@@ -1,54 +1,109 @@
 # FoodHub
 
-A Flutter recipe app powered by [TheMealDB](https://www.themealdb.com/) API with Firebase backend.
+Мобільний застосунок для пошуку рецептів на базі [TheMealDB API](https://www.themealdb.com/) з Firebase бекендом. Розроблено на Flutter з використанням Material Design 3.
 
-## Features
+---
 
-- Browse recipes by category with shimmer loading and Hero transitions
-- Search recipes in real time with debounce
-- Recipe of the day on the home screen
-- Add recipes to favorites - synced live with Firestore
-- Create your own recipes with photo from camera or gallery (uploaded to Firebase Storage)
-- Profile screen with avatar upload to Firebase Storage
-- Dark / light theme toggle
-- Localization: Ukrainian, English, Polish
+## Скріншоти
 
-## Screenshots
+| Головна | Список рецептів | Деталі рецепту |
+|--------|----------------|----------------|
+| ![home](screenshots/home.png) | ![list](screenshots/list.png) | ![detail](screenshots/detail.png) |
 
-| Home | Recipe Detail | Favorites |
-|------|--------------|-----------|
-| ![home](screenshots/home.png) | ![detail](screenshots/detail.png) | ![favorites](screenshots/favorites.png) |
+| Обрані | Мої рецепти | Додати рецепт |
+|--------|------------|--------------|
+| ![favorites](screenshots/favorites.png) | ![my_recipes](screenshots/my_recipes.png) | ![add](screenshots/add.png) |
 
-| My Recipes | Add Recipe | Profile |
-|------------|-----------|---------|
-| ![my_recipes](screenshots/my_recipes.png) | ![add](screenshots/add.png) | ![profile](screenshots/profile.png) |
+| Редагувати рецепт | Профіль | Темна тема |
+|------------------|---------|-----------|
+| ![edit](screenshots/edit.png) | ![profile](screenshots/profile.png) | ![dark](screenshots/dark.png) |
 
-## Tech Stack
+| Реєстрація | Вхід | Пошук |
+|-----------|------|-------|
+| ![register](screenshots/register.png) | ![login](screenshots/login.png) | ![search](screenshots/search.png) |
 
-| Layer | Technology |
-|-------|-----------|
+---
+
+## Функціонал
+
+- Перегляд рецептів по категоріях з shimmer-завантаженням та Hero-переходами
+- Пошук рецептів у реальному часі з debounce
+- Рецепт дня на головному екрані
+- Додавання рецептів до обраних - синхронізація з Firestore у реальному часі через StreamBuilder
+- Створення та редагування власних рецептів з фото (камера або галерея)
+- Завантаження фото у Firebase Storage
+- Профіль користувача з аватаром
+- Перемикання темної/світлої теми
+- Локалізація: Українська, Англійська, Польська
+
+---
+
+## Технічний стек
+
+| Рівень | Технологія |
+|--------|-----------|
 | UI | Flutter 3.44, Material Design 3 |
-| State | Riverpod 2 (Notifier pattern) |
-| Navigation | GoRouter 14 |
-| Auth | Firebase Authentication |
-| Database | Cloud Firestore |
-| Storage | Firebase Storage |
-| Local cache | SharedPreferences |
+| Стан | Riverpod 2 (Notifier pattern) |
+| Навігація | GoRouter 14 |
+| Автентифікація | Firebase Authentication |
+| База даних | Cloud Firestore |
+| Сховище | Firebase Storage |
+| Локальне збереження | SharedPreferences |
 | HTTP | Dio |
-| Images | cached_network_image, image_picker |
-| Animations | Hero, AnimatedScale, AnimatedSwitcher, FadeTransition |
-| i18n | Flutter Localizations (ARB) - UK / EN / PL |
+| Зображення | cached_network_image, image_picker |
+| Анімації | Hero, AnimatedScale, AnimatedSwitcher, FadeTransition |
+| Локалізація | Flutter Localizations (ARB) - UK / EN / PL |
 
-## Getting Started
+---
 
-### Prerequisites
+## Архітектура
+
+Проєкт побудований за принципом **feature-first** з розділенням на шари:
+
+```
+lib/
+├── core/
+│   ├── l10n/               # ARB файли локалізації + згенерований код
+│   ├── providers/           # SharedPreferences провайдер
+│   ├── router/              # GoRouter + MainScaffold (BottomNav)
+│   └── theme/               # Material Design 3 тема (light/dark)
+└── features/
+    ├── auth/
+    │   ├── domain/          # AuthState
+    │   └── presentation/    # Login, Register, ForgotPassword + Firebase Auth
+    ├── favorites/
+    │   ├── data/            # FavoritesFirestoreService (CRUD)
+    │   ├── domain/          # FavoriteMeal модель
+    │   └── presentation/    # FavoritesScreen (StreamBuilder) + Provider
+    ├── home/
+    │   └── presentation/    # HomeScreen (GridView, пошук, анімації)
+    ├── my_recipes/
+    │   ├── data/            # MyRecipesFirestoreService (CRUD)
+    │   ├── domain/          # MyRecipe модель
+    │   └── presentation/    # MyRecipesScreen (StreamBuilder), Add/Edit форма
+    ├── profile/
+    │   └── presentation/    # ProfileScreen + Storage аватар
+    ├── recipes/
+    │   ├── data/            # MealApiClient (Dio), MealRepositoryImpl
+    │   ├── domain/          # Моделі, MealRepository інтерфейс
+    │   └── presentation/    # RecipeList, RecipeDetail + Provider
+    └── settings/
+        ├── domain/          # SettingsState
+        └── presentation/    # SettingsNotifier (тема + мова)
+```
+
+---
+
+## Запуск проєкту
+
+### Вимоги
 
 - Flutter 3.44+
 - Dart 3.12+
-- Android Studio or VS Code
-- A Firebase project with **Authentication**, **Firestore**, and **Storage** enabled
+- Android Studio або VS Code
+- Firebase проєкт з увімкненими **Authentication**, **Firestore** та **Storage**
 
-### Setup
+### Встановлення
 
 ```bash
 git clone https://github.com/krtoxin/foodhub.git
@@ -56,21 +111,26 @@ cd foodhub
 flutter pub get
 ```
 
-Configure Firebase (generates `lib/firebase_options.dart`):
+### Налаштування Firebase
 
 ```bash
 dart pub global activate flutterfire_cli
 flutterfire configure
 ```
 
-Run on a connected device or emulator:
+Команда згенерує файл `lib/firebase_options.dart` (він у `.gitignore`).
+
+### Запуск
 
 ```bash
 flutter run
 ```
 
-### Firebase rules (Firestore)
+---
 
+## Firebase правила
+
+**Firestore:**
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -82,8 +142,7 @@ service cloud.firestore {
 }
 ```
 
-### Firebase rules (Storage)
-
+**Storage:**
 ```
 rules_version = '2';
 service firebase.storage {
@@ -95,30 +154,34 @@ service firebase.storage {
 }
 ```
 
-## Project Structure
+---
 
-```
-lib/
-├── core/
-│   ├── l10n/          # ARB localization files + generated code
-│   ├── providers/     # SharedPreferences provider
-│   ├── router/        # GoRouter + MainScaffold
-│   └── theme/         # Material Design 3 theme
-└── features/
-    ├── auth/          # Login, Register, Forgot Password + Firebase Auth provider
-    ├── favorites/     # Favorites list + Firestore service
-    ├── home/          # Home screen with category grid
-    ├── my_recipes/    # User recipes + Firestore service + Storage upload
-    ├── profile/       # Profile screen + Storage avatar upload
-    ├── recipes/       # MealDB API client, repository, screens
-    └── settings/      # Theme + language settings
-```
-
-## Tests
+## Тести
 
 ```bash
 flutter test
 ```
 
-- 20 unit tests - models (MealCategory, MealDetail, MealPreview, FavoriteMeal, MyRecipe)
-- 9 widget tests - LoginScreen, FavoritesScreen, AddRecipeScreen
+- **20 unit-тестів** - моделі: MealCategory, MealDetail, MealPreview, FavoriteMeal, MyRecipe
+- **9 widget-тестів** - LoginScreen, FavoritesScreen, AddRecipeScreen
+
+---
+
+## Критерії реалізації
+
+| # | Критерій | Реалізація |
+|---|---------|-----------|
+| 1 | UI/UX + Material Design 3 | `app_theme.dart`, light/dark теми, ColorScheme |
+| 2 | GoRouter, 5+ екранів | 9 маршрутів: login, register, home, favorites, my-recipes, profile, recipe-list, recipe-detail, edit-recipe |
+| 3 | GridView/ListView + пошук + pull-to-refresh | GridView категорій, ListView рецептів, debounce пошук |
+| 4 | Form + GlobalKey + валідація | `add_recipe_screen.dart`, autovalidateMode |
+| 5 | Реальний API + Repository pattern | TheMealDB через Dio, `MealRepository` інтерфейс |
+| 6 | SharedPreferences | `settings_provider.dart` - тема і мова |
+| 7 | Riverpod 3+ провайдери | 10+ провайдерів: auth, favorites, my_recipes, settings, recipes, search, тощо |
+| 8 | Анімації 2 типи | Hero (перехід між екранами), AnimatedSwitcher (серце), AnimatedScale |
+| 9 | Локалізація UK/EN/PL | ARB файли, 70+ рядків на кожну мову |
+| 10 | Тести 5 unit + 3 widget | 20 unit + 9 widget |
+| 11 | Camera + Gallery + Storage | image_picker + Firebase Storage (рецепти та аватар) |
+| 12 | Firebase Auth | signIn, signUp, signOut, resetPassword, updatePhotoURL |
+| 13 | Firestore CRUD + StreamBuilder | Create/Read/Update/Delete в `users/{uid}/favorites` та `users/{uid}/my_recipes` |
+| 14 | README + GitHub | Цей файл |
