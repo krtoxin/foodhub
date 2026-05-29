@@ -90,3 +90,9 @@ class AuthNotifier extends Notifier<AuthState> {
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+
+final currentUidProvider = Provider<String?>((ref) {
+  final isAuth = ref.watch(authProvider).isAuthenticated;
+  if (!isAuth) return null;
+  return FirebaseAuth.instance.currentUser?.uid;
+});
