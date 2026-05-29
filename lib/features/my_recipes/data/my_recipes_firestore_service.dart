@@ -20,6 +20,10 @@ class MyRecipesFirestoreService {
     await _col(uid).doc(recipe.id).set(recipe.toJson());
   }
 
+  Future<void> update(String uid, MyRecipe recipe) async {
+    await _col(uid).doc(recipe.id).update(recipe.toJson());
+  }
+
   Future<void> delete(String uid, String recipeId) async {
     await _col(uid).doc(recipeId).delete();
   }

@@ -9,6 +9,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/favorites/presentation/favorites_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/my_recipes/domain/my_recipe.dart' show MyRecipe;
 import '../../features/my_recipes/presentation/add_recipe_screen.dart';
 import '../../features/my_recipes/presentation/my_recipes_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
@@ -113,6 +114,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/add-recipe',
         builder: (context, state) => const AddRecipeScreen(),
+      ),
+      GoRoute(
+        path: '/edit-recipe',
+        builder: (context, state) => AddRecipeScreen(
+          recipe: state.extra as MyRecipe?,
+        ),
       ),
     ],
   );

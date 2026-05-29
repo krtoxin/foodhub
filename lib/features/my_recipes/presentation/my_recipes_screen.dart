@@ -45,6 +45,10 @@ class MyRecipesScreen extends ConsumerWidget {
                   itemCount: recipes.length,
                   itemBuilder: (ctx, i) => _RecipeCard(
                     recipe: recipes[i],
+                    onEdit: () => context.push(
+                      '/edit-recipe',
+                      extra: recipes[i],
+                    ),
                     onDelete: () => ref
                         .read(myRecipesProvider.notifier)
                         .delete(recipes[i].id),
@@ -91,9 +95,14 @@ class _EmptyState extends StatelessWidget {
 
 class _RecipeCard extends StatelessWidget {
   final MyRecipe recipe;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _RecipeCard({required this.recipe, required this.onDelete});
+  const _RecipeCard({
+    required this.recipe,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +152,10 @@ class _RecipeCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: onEdit,
             ),
           ],
         ),

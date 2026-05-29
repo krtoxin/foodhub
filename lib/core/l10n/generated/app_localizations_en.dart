@@ -214,4 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stepsRequired => 'Steps are required';
+
+  @override
+  String get editRecipe => 'Edit Recipe';
 }

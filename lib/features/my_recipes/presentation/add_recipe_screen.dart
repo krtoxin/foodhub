@@ -27,7 +27,9 @@ const _categories = [
 ];
 
 class AddRecipeScreen extends ConsumerStatefulWidget {
-  const AddRecipeScreen({super.key});
+  final MyRecipe? recipe;
+
+  const AddRecipeScreen({super.key, this.recipe});
 
   @override
   ConsumerState<AddRecipeScreen> createState() => _AddRecipeScreenState();
@@ -35,13 +37,25 @@ class AddRecipeScreen extends ConsumerStatefulWidget {
 
 class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ingredientsController = TextEditingController();
-  final _stepsController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _ingredientsController;
+  late final TextEditingController _stepsController;
 
   String? _selectedCategory;
   XFile? _pickedImage;
   bool _isSaving = false;
+
+  bool get _isEditing => widget.recipe != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.recipe;
+    _nameController = TextEditingController(text: r?.name ?? '');
+    _ingredientsController = TextEditingController(text: r?.ingredients ?? '');
+    _stepsController = TextEditingController(text: r?.steps ?? '');
+    _selectedCategory = r?.category.isNotEmpty == true ? r?.category : null;
+  }
 
   @override
   void dispose() {
@@ -105,10 +119,10 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
     final id = DateTime.now().millisecondsSinceEpoch;
-    final ref = FirebaseStorage.instance
-        .ref('users/$uid/recipes/$id.jpg');
-    await ref.putFile(File(localPath));
-    return ref.getDownloadURL();
+    final storageRef =
+        FirebaseStorage.instance.ref('users/$uid/recipes/$id.jpg');
+    await storageRef.putFile(File(localPath));
+    return storageRef.getDownloadURL();
   }
 
   Future<void> _save() async {
@@ -116,21 +130,33 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final id = DateTime.now().millisecondsSinceEpoch.toString();
-      String? imageUrl;
+      String? imageUrl = widget.recipe?.imagePath;
       if (_pickedImage != null) {
         imageUrl = await _uploadImage(_pickedImage!.path);
       }
-      final recipe = MyRecipe(
-        id: id,
-        name: _nameController.text.trim(),
-        category: _selectedCategory ?? '',
-        ingredients: _ingredientsController.text.trim(),
-        steps: _stepsController.text.trim(),
-        imagePath: imageUrl,
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-      );
-      await ref.read(myRecipesProvider.notifier).add(recipe);
+
+      if (_isEditing) {
+        final updated = widget.recipe!.copyWith(
+          name: _nameController.text.trim(),
+          category: _selectedCategory ?? '',
+          ingredients: _ingredientsController.text.trim(),
+          steps: _stepsController.text.trim(),
+          imagePath: imageUrl,
+        );
+        await ref.read(myRecipesProvider.notifier).update(updated);
+      } else {
+        final recipe = MyRecipe(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text.trim(),
+          category: _selectedCategory ?? '',
+          ingredients: _ingredientsController.text.trim(),
+          steps: _stepsController.text.trim(),
+          imagePath: imageUrl,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        );
+        await ref.read(myRecipesProvider.notifier).add(recipe);
+      }
+
       if (mounted) context.pop();
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -140,9 +166,12 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final existingImageUrl = widget.recipe?.imagePath;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.addRecipe)),
+      appBar: AppBar(
+        title: Text(_isEditing ? l10n.editRecipe : l10n.addRecipe),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -153,6 +182,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
             children: [
               _ImagePickerArea(
                 pickedImage: _pickedImage,
+                existingImageUrl: existingImageUrl,
                 onTap: _showImageSourceSheet,
                 l10n: l10n,
               ),
@@ -183,8 +213,7 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
                 onChanged: (v) => setState(() => _selectedCategory = v),
-                validator: (v) =>
-                    v == null ? l10n.fieldRequired : null,
+                validator: (v) => v == null ? l10n.fieldRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -244,11 +273,13 @@ class _AddRecipeScreenState extends ConsumerState<AddRecipeScreen> {
 
 class _ImagePickerArea extends StatelessWidget {
   final XFile? pickedImage;
+  final String? existingImageUrl;
   final VoidCallback onTap;
   final AppLocalizations l10n;
 
   const _ImagePickerArea({
     required this.pickedImage,
+    required this.existingImageUrl,
     required this.onTap,
     required this.l10n,
   });
@@ -256,6 +287,22 @@ class _ImagePickerArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    Widget content;
+    if (pickedImage != null) {
+      content = Image.file(File(pickedImage!.path), fit: BoxFit.cover);
+    } else if (existingImageUrl != null) {
+      content = Image.network(existingImageUrl!, fit: BoxFit.cover);
+    } else {
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_a_photo_outlined, size: 48, color: colorScheme.primary),
+          const SizedBox(height: 8),
+          Text(l10n.addPhoto, style: TextStyle(color: colorScheme.primary)),
+        ],
+      );
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -267,18 +314,7 @@ class _ImagePickerArea extends StatelessWidget {
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         ),
         clipBehavior: Clip.antiAlias,
-        child: pickedImage != null
-            ? Image.file(File(pickedImage!.path), fit: BoxFit.cover)
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_a_photo_outlined,
-                      size: 48, color: colorScheme.primary),
-                  const SizedBox(height: 8),
-                  Text(l10n.addPhoto,
-                      style: TextStyle(color: colorScheme.primary)),
-                ],
-              ),
+        child: content,
       ),
     );
   }

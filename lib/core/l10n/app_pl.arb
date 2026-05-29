@@ -68,5 +68,6 @@
   "polish": "Polski",
   "recipeNameRequired": "Nazwa przepisu jest wymagana",
   "ingredientsRequired": "Składniki są wymagane",
-  "stepsRequired": "Kroki są wymagane"
+  "stepsRequired": "Kroki są wymagane",
+  "editRecipe": "Edytuj przepis"
 }

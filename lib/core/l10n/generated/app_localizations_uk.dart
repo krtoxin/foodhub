@@ -215,4 +215,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get stepsRequired => 'Кроки обов\'язкові';
+
+  @override
+  String get editRecipe => 'Редагувати рецепт';
 }

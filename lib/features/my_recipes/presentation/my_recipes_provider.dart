@@ -16,6 +16,14 @@ class MyRecipesNotifier extends Notifier<List<MyRecipe>> {
     state = [recipe, ...state];
   }
 
+  Future<void> update(MyRecipe recipe) async {
+    final uid = _uid;
+    if (uid != null) await myRecipesFirestoreService.update(uid, recipe);
+    state = [
+      for (final r in state) r.id == recipe.id ? recipe : r,
+    ];
+  }
+
   Future<void> delete(String id) async {
     final uid = _uid;
     if (uid != null) await myRecipesFirestoreService.delete(uid, id);

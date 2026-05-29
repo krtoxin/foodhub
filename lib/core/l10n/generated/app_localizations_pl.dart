@@ -214,4 +214,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get stepsRequired => 'Kroki są wymagane';
+
+  @override
+  String get editRecipe => 'Edytuj przepis';
 }

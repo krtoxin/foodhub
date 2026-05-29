@@ -68,5 +68,6 @@
   "polish": "Польська",
   "recipeNameRequired": "Назва рецепту обов'язкова",
   "ingredientsRequired": "Інгредієнти обов'язкові",
-  "stepsRequired": "Кроки обов'язкові"
+  "stepsRequired": "Кроки обов'язкові",
+  "editRecipe": "Редагувати рецепт"
 }

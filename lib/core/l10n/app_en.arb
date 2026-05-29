@@ -68,5 +68,6 @@
   "polish": "Polish",
   "recipeNameRequired": "Recipe name is required",
   "ingredientsRequired": "Ingredients are required",
-  "stepsRequired": "Steps are required"
+  "stepsRequired": "Steps are required",
+  "editRecipe": "Edit Recipe"
 }

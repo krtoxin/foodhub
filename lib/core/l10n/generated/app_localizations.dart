@@ -513,6 +513,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Steps are required'**
   String get stepsRequired;
+
+  /// No description provided for @editRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Recipe'**
+  String get editRecipe;
 }
 
 class _AppLocalizationsDelegate
